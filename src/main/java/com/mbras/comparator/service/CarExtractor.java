@@ -25,7 +25,7 @@ public class CarExtractor {
     private static final Pattern pricePattern = Pattern.compile("(prix.*:.*\")(.*)(\",)");
     private static final Pattern kmPattern = Pattern.compile("(km.*:.*\")(.*)(\",)");
     private static final Pattern yearPattern = Pattern.compile("(annee.*:.*\")(.*)(\",)");
-    private static final String FILE_NAME = "cars.csv";
+    private static final String FILE_NAME = "results.csv";
 
     public void extractData(String url) throws IOException{
         Proxy proxy = getProxy();
