@@ -31,3 +31,14 @@ hs_err_pid*
 *.ids
 *.orig
 classes/
+
+######################
+# Visual Studio Code
+######################
+.vscode/
+
+######################
+# Maven
+######################
+/log/
+/target/
