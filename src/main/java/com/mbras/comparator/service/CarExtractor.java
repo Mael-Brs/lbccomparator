@@ -2,7 +2,6 @@ package com.mbras.comparator.service;
 
 import com.mbras.comparator.model.Car;
 import org.jsoup.Jsoup;
-import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -11,7 +10,6 @@ import org.slf4j.simple.SimpleLoggerFactory;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,8 +25,7 @@ public class CarExtractor {
     private static final Pattern yearPattern = Pattern.compile("(annee.*:.*\")(.*)(\",)");
     private static final String FILE_NAME = "results.csv";
 
-    public void extractData(String url) throws IOException{
-        Proxy proxy = getProxy();
+    public void extractData(String url, Proxy proxy) throws IOException{
         List<Car> cars = new ArrayList<>();
         Document doc = Jsoup.connect(url).proxy(proxy).get();
         Elements links = doc.select(".tabsContent .list_item");
@@ -68,21 +65,10 @@ public class CarExtractor {
         try (FileWriter writer = new FileWriter(FILE_NAME)){
             writer.write(recordAsCsv);
             writer.flush();
-            writer.close();
         } catch (IOException e) {
             LOGGER.error("Error while creating csv file", e);
         }
 
-    }
-
-    private Proxy getProxy() {
-        String proxyHost = System.getProperty("http.proxyHost");
-        String proxyPort = System.getProperty("http.proxyPort");
-        if(!StringUtil.isBlank(proxyHost) && !StringUtil.isBlank(proxyPort)){
-            return new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort)));
-        } else {
-            return Proxy.NO_PROXY;
-        }
     }
 
 }
