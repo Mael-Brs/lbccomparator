@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 public class CarExtractor {
 
     private static final Logger LOGGER = new SimpleLoggerFactory().getLogger(CarExtractor.class.getName());
-    private static final Pattern pricePattern = Pattern.compile("(prix.*:.*\")(.*)(\",)");
-    private static final Pattern kmPattern = Pattern.compile("(km.*:.*\")(.*)(\",)");
-    private static final Pattern yearPattern = Pattern.compile("(annee.*:.*\")(.*)(\",)");
+    private static final Pattern pricePattern = Pattern.compile("(\"price\":\\[)(\\d+)(])");
+    private static final Pattern kmPattern = Pattern.compile("(\"mileage\",\"value\":\")(\\d+)");
+    private static final Pattern yearPattern = Pattern.compile("(\"regdate\",\"value\":\")(\\d+)");
     private static final String FILE_NAME = "results.csv";
 
     public void extractData(String url, Proxy proxy) throws IOException{
