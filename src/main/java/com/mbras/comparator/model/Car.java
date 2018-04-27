@@ -1,15 +1,27 @@
 package com.mbras.comparator.model;
 
 
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Car {
-    String mileage;
-    String year;
-    String price;
-    String adUrl;
-    String title;
+
+    private String mileage;
+
+    private String year;
+
+    private String price;
+
+    private String adUrl;
+
+    private String title;
+
+    private String estimatedPrice;
+
+    private String priceGap;
+
+    private String date;
 
     public String getMileage() {
         return mileage;
@@ -51,8 +63,29 @@ public class Car {
         this.title = title;
     }
 
+    public String getEstimatedPrice() {
+        return estimatedPrice;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
+    }
+
+    public void setEstimatedPrice(Double estimatedPrice) {
+        if(this.price != null && estimatedPrice != null){
+            this.estimatedPrice = estimatedPrice.toString();
+            Double numericalGap = Double.parseDouble(this.price) - estimatedPrice;
+            this.priceGap = numericalGap.toString();
+        }
+    }
+
     public String toCsvRow() {
-        return Stream.of(adUrl, title, price, mileage, year)
+        return Stream.of(adUrl, date, title, price, mileage, year, estimatedPrice, priceGap)
+                .filter(Objects::nonNull)
                 .map(value -> value.replaceAll("\"", "\"\""))
                 .collect(Collectors.joining(";"));
     }

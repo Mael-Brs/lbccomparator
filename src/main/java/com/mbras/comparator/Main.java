@@ -19,7 +19,8 @@ public class Main {
         CarExtractor carExtractor = new CarExtractor();
         try {
             Properties properties = getProperties();
-            carExtractor.extractData(properties.getProperty("lbc.url"), getProxy(properties));
+            carExtractor.buildPriceModel(properties.getProperty("lbc.url"), getProxy(properties));
+            //carExtractor.estimateCars(properties.getProperty("lbc.url"), getProxy(properties));
         } catch (IOException e) {
             LOGGER.error("Error while extracting car data", e);
         }
