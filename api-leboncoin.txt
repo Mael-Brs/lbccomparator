@@ -1,0 +1,49 @@
+https://api.leboncoin.fr/finder/search
+{
+    "filters": {
+        "category": {
+            "id": "2"
+        },
+        "owner": {},
+        "keywords": {
+            "type": "all",
+            "text": "not sw and not 82"
+        },
+        "location": {
+            "region": "6",
+            "department": "35",
+            "department_near": true
+        },
+        "ranges": {
+            "mileage": {
+                "max": 50000
+            },
+            "price": {
+                "max": 17500
+            },
+            "regdate": {
+                "max": 2018,
+                "min": 2014
+            }
+        },
+        "enums": {
+            "ad_type": [
+                "offer"
+            ],
+            "brand": [
+                "Peugeot"
+            ],
+            "fuel": [
+                "1"
+            ],
+            "model": [
+                "308"
+            ]
+        }
+    },
+    "counters": {},
+    "limit": 35,
+    "owner_type": "pro",
+    "sort_by": "time",
+    "sort_order": "desc"
+}
