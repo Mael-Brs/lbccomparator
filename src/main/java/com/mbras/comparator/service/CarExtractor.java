@@ -33,10 +33,12 @@ public class CarExtractor {
     private static final String RESULTS_CSV = "./estimate/results.csv";
     private static final String TRAINING_DATA_CSV = "./model/trainingData.csv";
     private static final String LINEAR_REGRESSION_MODEL_CSV = "./model/linearRegressionModel.csv";
+    private static final String DELIMITER = System.getProperty("line.separator");
 
     private LinearRegressionService linearRegressionService = new LinearRegressionService();
 
     private Double slope;
+
     private Double intercept;
 
 
@@ -84,49 +86,16 @@ public class CarExtractor {
         boolean hasModel = this.slope != null && this.intercept != null;
 
         for(int i = 0; i < links.size(); i++) {
-            Element element = links.get(i);
-            Car car = new Car();
-            car.setAdUrl(element.attr("abs:href"));
-            car.setTitle(element.attr("title"));
-            Document carAd = Jsoup.connect(car.getAdUrl()).proxy(proxy).get();
+            Car car = getCar(proxy, links, i);
+            if (car == null) return;
 
-            Elements scripts = carAd.body().getElementsByTag("script");
-            if (scripts.isEmpty()) {
-                return;
-            }
-            Element script = scripts.get(3);
-            String scriptContent = script.html();
-
-            Matcher priceMatcher = pricePattern.matcher(scriptContent);
-            int price = 0;
-            if (priceMatcher.find()) {
-                String priceString = priceMatcher.group(2);
-                car.setPrice(priceString);
-                price = Integer.parseInt(priceString);
-            }
-            Matcher mileageMatcher = kmPattern.matcher(scriptContent);
-            int mileage = 0;
-            if (mileageMatcher.find()) {
-                String mileageString = mileageMatcher.group(2);
-                car.setMileage(mileageString);
-                mileage = Integer.parseInt(mileageString);
-            }
-
-            Matcher yearMatcher = yearPattern.matcher(scriptContent);
-            if (yearMatcher.find()) {
-                car.setYear(yearMatcher.group(2));
-            }
-            Matcher dateMatcher = datePattern.matcher(scriptContent);
-            if (dateMatcher.find()) {
-                car.setDate(dateMatcher.group(2));
-            }
             cars.add(car);
 
             if(isForTraining) {
-                modeldata[i][0] = mileage;
-                modeldata[i][1] = price;
+                modeldata[i][0] = Integer.parseInt(car.getMileage());
+                modeldata[i][1] = Integer.parseInt(car.getPrice());
             } else if(hasModel) {
-                car.setEstimatedPrice(mileage * slope + intercept);
+                car.setEstimatedPrice(Integer.parseInt(car.getMileage()) * slope + intercept);
             }
         }
 
@@ -136,10 +105,48 @@ public class CarExtractor {
         }
         String recordAsCsv = cars.stream()
                 .map(Car::toCsvRow)
-                .collect(Collectors.joining(System.getProperty("line.separator")));
+                .collect(Collectors.joining(DELIMITER)) + DELIMITER;
         String fileName = isForTraining ? TRAINING_DATA_CSV : RESULTS_CSV;
         writeToFile(recordAsCsv, fileName, true);
 
+    }
+
+    private Car getCar(Proxy proxy, Elements links, int i) throws IOException {
+        Element element = links.get(i);
+        Car car = new Car();
+        car.setAdUrl(element.attr("abs:href"));
+        car.setTitle(element.attr("title"));
+        Document carAd = Jsoup.connect(car.getAdUrl()).proxy(proxy).get();
+
+        Elements scripts = carAd.body().getElementsByTag("script");
+        if (scripts.isEmpty()) {
+            return null;
+        }
+        Element script = scripts.get(3);
+        String scriptContent = script.html();
+
+        Matcher priceMatcher = pricePattern.matcher(scriptContent);
+        if (priceMatcher.find()) {
+            String priceString = priceMatcher.group(2);
+            car.setPrice(priceString);
+        }
+
+        Matcher mileageMatcher = kmPattern.matcher(scriptContent);
+        if (mileageMatcher.find()) {
+            String mileageString = mileageMatcher.group(2);
+            car.setMileage(mileageString);
+        }
+
+        Matcher yearMatcher = yearPattern.matcher(scriptContent);
+        if (yearMatcher.find()) {
+            car.setYear(yearMatcher.group(2));
+        }
+
+        Matcher dateMatcher = datePattern.matcher(scriptContent);
+        if (dateMatcher.find()) {
+            car.setDate(dateMatcher.group(2));
+        }
+        return car;
     }
 
     /**
