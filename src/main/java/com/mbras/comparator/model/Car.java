@@ -84,7 +84,7 @@ public class Car {
     }
 
     public String toCsvRow() {
-        return Stream.of(adUrl, date, title, price, mileage, year, estimatedPrice, priceGap)
+        return Stream.of(adUrl, title, price, mileage, year, date, estimatedPrice, priceGap)
                 .filter(Objects::nonNull)
                 .map(value -> value.replaceAll("\"", "\"\""))
                 .collect(Collectors.joining(";"));
