@@ -34,6 +34,7 @@ public class CarExtractor {
     private static final String TRAINING_DATA_CSV = "./model/trainingData.csv";
     private static final String LINEAR_REGRESSION_MODEL_CSV = "./model/linearRegressionModel.csv";
     private static final String DELIMITER = System.getProperty("line.separator");
+    private static final int PAGE_LIMIT = 5;
 
     private LinearRegressionService linearRegressionService = new LinearRegressionService();
 
@@ -59,6 +60,7 @@ public class CarExtractor {
      * @throws IOException Erreur d'enregistrement des données
      */
     public void estimateCars(String url, Proxy proxy) throws IOException {
+        //Chargement du modèle de regression linéaire si il a été créé précédement
         List<String[]> datas = this.loadCsvFile(LINEAR_REGRESSION_MODEL_CSV);
         if(datas.size() == 2){
             Map<String, String> regressionModelMap = new HashMap<>();
@@ -78,17 +80,19 @@ public class CarExtractor {
      * @throws IOException Erreur d'enregistrement des données
      */
     private void extractData(String url, Proxy proxy, boolean isForTraining) throws IOException {
-        List<Car> cars = new ArrayList<>();
-        Document doc = Jsoup.connect(url).proxy(proxy).get();
-        Elements links = doc.select(".tabsContent .list_item");
-        double [][] modeldata = new double[links.size()][2];
-
         boolean hasModel = this.slope != null && this.intercept != null;
 
-        for(int i = 0; i < links.size(); i++) {
-            Car car = getCar(proxy, links, i);
-            if (car == null) return;
+        int pageNumber = 0;
+        Elements links = extractCarAddLinks(url, proxy, pageNumber, new Elements());
 
+        double [][] modeldata = new double[links.size()][2];
+
+        List<Car> cars = new ArrayList<>();
+        for(int i = 0; i < links.size(); i++) {
+            Car car = extractCarData(proxy, links.get(i));
+            if (car == null) {
+                return;
+            }
             cars.add(car);
 
             if(isForTraining) {
@@ -103,16 +107,43 @@ public class CarExtractor {
             linearRegressionService.addTrainData(modeldata);
             writeToFile(linearRegressionService.getModelAsCsvString(), LINEAR_REGRESSION_MODEL_CSV, false);
         }
+
         String recordAsCsv = cars.stream()
                 .map(Car::toCsvRow)
                 .collect(Collectors.joining(DELIMITER)) + DELIMITER;
+
         String fileName = isForTraining ? TRAINING_DATA_CSV : RESULTS_CSV;
         writeToFile(recordAsCsv, fileName, true);
-
     }
 
-    private Car getCar(Proxy proxy, Elements links, int i) throws IOException {
-        Element element = links.get(i);
+    /**
+     * Extrait les urls des annonces de la liste des annonces d'une page données
+     * @param url Url de la liste des annonces
+     * @param proxy Proxy à utiliser
+     * @param pageNumber Numéro de la page de la liste des annonces
+     * @param links Liste des urls des annonces
+     * @return La liste des liens mise à jour
+     * @throws IOException problème de connection à la page
+     */
+    private Elements extractCarAddLinks(String url, Proxy proxy, int pageNumber, Elements links) throws IOException {
+        Document doc = Jsoup.connect(url).proxy(proxy).get();
+        links.addAll(doc.select(".tabsContent .list_item"));
+        pageNumber ++;
+        Element next = doc.getElementById("next");
+        if(next != null && pageNumber < PAGE_LIMIT){
+            extractCarAddLinks(next.attr("abs:href"), proxy, pageNumber, links);
+        }
+        return links;
+    }
+
+    /**
+     * Extrait les données des annonces de voiture
+     * @param proxy Proxy à utiliser
+     * @param element Balise html contenant le lien de l'annonce
+     * @return Les données de la voiture
+     * @throws IOException Problème de connection à l'annonce
+     */
+    private Car extractCarData(Proxy proxy, Element element) throws IOException {
         Car car = new Car();
         car.setAdUrl(element.attr("abs:href"));
         car.setTitle(element.attr("title"));
@@ -164,6 +195,11 @@ public class CarExtractor {
         }
     }
 
+    /**
+     * Charge les données d'un fichier csv
+     * @param path chemin du fichier à charger
+     * @return Tableau contenant les données du fichier csv
+     */
     private List <String[]>  loadCsvFile(String path) {
         String line;
         List <String[]> datas = new ArrayList<>();
