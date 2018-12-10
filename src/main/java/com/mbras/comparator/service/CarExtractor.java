@@ -37,29 +37,26 @@ public class CarExtractor {
     private static final int PAGE_LIMIT = 5;
 
     private LinearRegressionService linearRegressionService = new LinearRegressionService();
+    private SeleniumExtractor seleniumExtractor = new SeleniumExtractor();
 
     private Double slope;
-
     private Double intercept;
 
 
     /**
      * Extrait les annonces d'une recherche leboncoin et détermine une relation linéaire prix/km
      * @param url Adresse de la recherche leboncoin
-     * @param proxy Proxy à utiliser pour la connection
-     * @throws IOException Erreur d'enregistrement des données
      */
-    public void buildPriceModel(String url, Proxy proxy) throws IOException {
-        this.extractData(url, proxy, true);
+    public void buildPriceModel(String url) {
+        this.extractData(url, true);
     }
 
     /**
      * Extrait les annonces d'une recherche leboncoin et estime le prix théorique
      * @param url Adresse de la recherche leboncoin
-     * @param proxy Proxy à utiliser pour la connection
-     * @throws IOException Erreur d'enregistrement des données
+     *
      */
-    public void estimateCars(String url, Proxy proxy) throws IOException {
+    public void estimateCars(String url) {
         //Chargement du modèle de regression linéaire si il a été créé précédement
         List<String[]> datas = this.loadCsvFile(LINEAR_REGRESSION_MODEL_CSV);
         if(datas.size() == 2){
@@ -69,38 +66,42 @@ public class CarExtractor {
             this.slope = Double.parseDouble(regressionModelMap.get("a"));
             this.intercept = Double.parseDouble(regressionModelMap.get("b"));
         }
-        this.extractData(url, proxy, false);
+        this.extractData(url, false);
     }
 
     /**
      * Extrait les données d'offre de voitures leboncoin
      * @param url adresse de la recherche
-     * @param proxy Proxy à utiliser pour la connection
      * @param isForTraining true si les données seront utilisées pour calculer le modèle de regression
-     * @throws IOException Erreur d'enregistrement des données
      */
-    private void extractData(String url, Proxy proxy, boolean isForTraining) throws IOException {
+    private void extractData(String url, boolean isForTraining) {
         boolean hasModel = this.slope != null && this.intercept != null;
 
-        int pageNumber = 0;
-        Elements links = extractCarAddLinks(url, proxy, pageNumber, new Elements());
+        double [][] modeldata;
+        List<Car> cars;
+        seleniumExtractor.init();
+        try {
+            List<String> links = seleniumExtractor.getLinks(url, new ArrayList<>(), 0);
+            modeldata = new double[links.size()][2];
 
-        double [][] modeldata = new double[links.size()][2];
+            cars = new ArrayList<>();
 
-        List<Car> cars = new ArrayList<>();
-        for(int i = 0; i < links.size(); i++) {
-            Car car = extractCarData(proxy, links.get(i));
-            if (car == null) {
-                return;
+            for(int i = 0; i < links.size(); i++) {
+                Car car = seleniumExtractor.extractCarData(links.get(i));
+                if (car == null) {
+                    return;
+                }
+                cars.add(car);
+
+                if(isForTraining) {
+                    modeldata[i][0] = Integer.parseInt(car.getMileage());
+                    modeldata[i][1] = Integer.parseInt(car.getPrice());
+                } else if(hasModel) {
+                    car.setEstimatedPrice(Integer.parseInt(car.getMileage()) * slope + intercept);
+                }
             }
-            cars.add(car);
-
-            if(isForTraining) {
-                modeldata[i][0] = Integer.parseInt(car.getMileage());
-                modeldata[i][1] = Integer.parseInt(car.getPrice());
-            } else if(hasModel) {
-                car.setEstimatedPrice(Integer.parseInt(car.getMileage()) * slope + intercept);
-            }
+        } finally {
+            seleniumExtractor.closeDriver();
         }
 
         if(isForTraining){

@@ -1,14 +1,11 @@
 package com.mbras.comparator;
 
 import com.mbras.comparator.service.CarExtractor;
-import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.simple.SimpleLoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
 import java.util.Properties;
 
 public class Main {
@@ -19,8 +16,8 @@ public class Main {
         CarExtractor carExtractor = new CarExtractor();
         try {
             Properties properties = getProperties();
-            carExtractor.buildPriceModel(properties.getProperty("lbc.url"), getProxy(properties));
-            //carExtractor.estimateCars(properties.getProperty("lbc.url"), getProxy(properties));
+            carExtractor.buildPriceModel(properties.getProperty("lbc.url"));
+            carExtractor.estimateCars(properties.getProperty("lbc.url"));
         } catch (IOException e) {
             LOGGER.error("Error while extracting car data", e);
         }
@@ -44,15 +41,5 @@ public class Main {
         //we have loaded the properties, so close the file handle
         file.close();
         return mainProperties;
-    }
-
-    private static Proxy getProxy(Properties properties) {
-        String proxyHost = properties.getProperty("http.proxyHost");
-        String proxyPort = properties.getProperty("http.proxyPort");
-        if(!StringUtil.isBlank(proxyHost) && !StringUtil.isBlank(proxyPort)){
-            return new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort)));
-        } else {
-            return Proxy.NO_PROXY;
-        }
     }
 }
